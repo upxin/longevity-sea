@@ -14,7 +14,8 @@
   let positionReady = false;
   let saveTimer = null;
   let pendingResume = null;
-  const progressPrefix = 'shujian:reading:v1:';
+  const progressPrefix = 'shujian:reading:v2:';
+  const legacyPrefix = 'shujian:reading:v1:';
   const memoryProgress = new Map();
 
   // Let the reader restore its own paragraph position instead of racing the browser.
@@ -39,14 +40,60 @@
     memoryProgress.set(key, value);
     try {
       localStorage.setItem(progressPrefix + key, JSON.stringify(value));
+      return true;
     } catch {
       storageUnavailable();
+      return false;
+    }
+  }
+
+  function bookName(book) {
+    return book.title.normalize('NFKC').replace(/\s+/g, ' ').trim();
+  }
+
+  function bookKey(book) {
+    return 'book:' + encodeURIComponent(bookName(book));
+  }
+
+  function readLegacy(key) {
+    try {
+      const raw = localStorage.getItem(legacyPrefix + key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function removeLegacy(key) {
+    try { localStorage.removeItem(legacyPrefix + key); } catch { /* Keep the old record if unavailable. */ }
+  }
+
+  function migrateProgress() {
+    for (const book of library) {
+      if (readSaved(bookKey(book))) continue;
+      const old = readLegacy(book.id);
+      if (!old || !Number.isInteger(old.chapter) || !book.chapters[old.chapter]) continue;
+      const migrated = {...old, bookTitle: book.title, chapterTitle: chapterLabel(book.chapters[old.chapter])};
+      if (writeSaved(bookKey(book), migrated)) removeLegacy(book.id);
+    }
+    if (!readSaved('last-book')) {
+      const oldId = readLegacy('last-book');
+      const book = library.find(book => book.id === oldId);
+      if (book && writeSaved('last-book', bookName(book))) removeLegacy('last-book');
     }
   }
 
   function savedPosition(book) {
-    const saved = readSaved(book.id);
-    if (!saved || !Number.isInteger(saved.chapter) || saved.chapter < 0 || saved.chapter >= book.chapters.length) return null;
+    const saved = readSaved(bookKey(book));
+    if (!saved || typeof saved !== 'object') return null;
+    // A book's position in the shelf and a chapter's index can both change.
+    if (typeof saved.chapterTitle === 'string') {
+      const matches = book.chapters.map((chapter, index) => ({chapter, index}))
+        .filter(entry => chapterLabel(entry.chapter) === saved.chapterTitle);
+      if (matches.length === 1) return {...saved, chapter: matches[0].index};
+      if (!matches.length) return null;
+    }
+    if (!Number.isInteger(saved.chapter) || saved.chapter < 0 || saved.chapter >= book.chapters.length) return null;
     return saved;
   }
 
@@ -55,13 +102,15 @@
     const blocks = [...content.children];
     const anchor = scrollY > 0 ? blocks.findIndex(block => block.getBoundingClientRect().bottom > 32) : -1;
     const rect = anchor >= 0 ? blocks[anchor].getBoundingClientRect() : null;
-    writeSaved(activeBook.id, {
+    writeSaved(bookKey(activeBook), {
+      bookTitle: activeBook.title,
+      chapterTitle: chapterLabel(activeBook.chapters[chapterIndex]),
       chapter: chapterIndex,
       scrollY: Math.max(0, scrollY),
       anchor,
       offset: rect ? Math.max(0, Math.min(1, (32 - rect.top) / Math.max(1, rect.height))) : 0,
     });
-    writeSaved('last-book', activeBook.id);
+    writeSaved('last-book', bookName(activeBook));
   }
 
   function flushProgress() {
@@ -263,7 +312,7 @@
       showChapter(match[1], Number(match[2]) - 1, resume);
     } else {
       const lastBook = readSaved('last-book');
-      const book = library.find(book => book.id === lastBook) || library[0];
+      const book = library.find(book => bookName(book) === lastBook) || library[0];
       const saved = book && savedPosition(book);
       showChapter(book?.id, saved?.chapter ?? book?.start ?? 0, true);
     }
@@ -334,5 +383,6 @@
   });
   mobile.addEventListener('change', syncLayout);
   syncLayout();
+  migrateProgress();
   readRoute();
 })();
