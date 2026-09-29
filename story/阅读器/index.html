@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="本地小说阅读：选择书籍，按目录翻阅章节。">
+  <title>书间 · 小说阅读</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23233543'/%3E%3Cpath d='M7 8h8v17H7zm10 0h8v17h-8z' fill='%23faf9f6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="reader.css">
+  <script defer src="library.js"></script>
+  <script defer src="reader.js"></script>
+</head>
+<body>
+  <a class="skip" href="#reading">跳到正文</a>
+  <button class="scrim" id="scrim" aria-label="关闭目录" hidden></button>
+  <aside class="sidebar" id="sidebar" aria-label="书籍与目录">
+    <div class="brand"><span class="book-mark" aria-hidden="true">册</span><span>书间<small>本地书架</small></span><button id="close-menu" class="icon-button mobile-only" aria-label="关闭目录">×</button></div>
+    <div class="book-picker"><label for="book">正在阅读</label><select id="book" aria-label="选择书籍"></select><p id="book-meta"></p></div>
+    <div class="toc-label"><h2>目录</h2><span id="chapter-total"></span></div>
+    <nav id="toc" class="toc" aria-label="章节目录"></nav>
+    <div class="sidebar-foot"><span id="save-status" title="每本书分别记住章节和阅读位置">进度自动保存</span><span id="library-count"></span></div>
+  </aside>
+  <div class="workspace">
+    <header class="toolbar"><div class="current-book"><button id="open-menu" class="icon-button mobile-only" aria-label="打开目录" aria-expanded="false" aria-controls="sidebar">☰</button><span id="book-title">书间</span></div><span class="keyboard-hint">← 上一章<span> / </span>下一章 →</span></header>
+    <main id="reading" tabindex="-1">
+      <div class="chapter-head"><p id="chapter-kicker" class="eyebrow"></p><h1 id="chapter-title">正在打开书籍</h1><div class="chapter-meta"><span id="chapter-count"></span><span class="meta-dot">·</span><span id="word-count"></span></div></div>
+      <div id="status" role="status" hidden></div>
+      <article id="content" class="prose" aria-labelledby="chapter-title"></article>
+      <nav class="chapter-navigation" aria-label="正文底部翻章"><button id="bottom-prev" class="page-button"><span>← 上一章</span><small id="prev-title"></small></button><button id="bottom-next" class="page-button"><span>下一章 →</span><small id="next-title"></small></button></nav>
+      <footer class="reading-foot" id="source"></footer>
+    </main>
+    <nav class="bottom-bar" aria-label="翻章"><button id="prev" aria-keyshortcuts="ArrowLeft">← <span>上一章</span></button><button id="current-chapter" aria-label="在目录中查看当前章节"><span id="page-position">—</span><small>章节 / 小节</small></button><button id="next" aria-keyshortcuts="ArrowRight"><span>下一章</span> →</button></nav>
+  </div>
+  <noscript>请启用浏览器的 JavaScript 后阅读。</noscript>
+</body>
+</html>
